@@ -2,7 +2,7 @@ use std::{convert::Infallible, sync::Arc};
 
 use bytes::Bytes;
 use http::{Request, Response};
-use http_body_util::{combinators::BoxBody, BodyExt, Full};
+use http_body_util::{BodyExt, Full};
 use hyper::{body::Incoming, service::service_fn};
 use hyper_util::{rt::{TokioExecutor, TokioIo}, server::conn::auto::Builder};
 use kube::Client;
