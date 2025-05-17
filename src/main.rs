@@ -1,19 +1,20 @@
-mod types;
-mod dockerhub;
-mod kube_watcher;
-mod metrics;
+use std::{convert::Infallible, sync::Arc};
 
-use std::sync::Arc;
-use dockerhub::fetch_latest_tag;
-use kube_watcher::list_images;
-use metrics::Metrics;
+use bytes::Bytes;
+use http::{Request, Response};
+use http_body_util::{combinators::BoxBody, BodyExt, Full};
+use hyper::{body::Incoming, service::service_fn};
+use hyper_util::{rt::{TokioExecutor, TokioIo}, server::conn::auto::Builder};
 use kube::Client;
 use reqwest::Client as HttpClient;
-use hyper::{Body, Request, Response, Server};
-use hyper::service::{make_service_fn, service_fn};
+use tokio::net::TcpListener;
+
+use k8s_image_version_exporter::dockerhub::fetch_latest_tag;
+use k8s_image_version_exporter::kube_watcher::list_images;
+use k8s_image_version_exporter::metrics::Metrics;
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let k8s_client = Client::try_default().await?;
     let http_client = HttpClient::new();
     let metrics = Arc::new(Metrics::new());
@@ -21,20 +22,32 @@ async fn main() -> anyhow::Result<()> {
     // spawn http server
     let metrics_clone = metrics.clone();
     tokio::spawn(async move {
-        let make_svc = make_service_fn(move |_| {
+        let listener = TcpListener::bind((std::net::Ipv4Addr::UNSPECIFIED, 8080)).await.unwrap();
+        loop {
+            let (stream, addr) = match listener.accept().await {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("failed to accept connection: {e}");
+                    continue;
+                }
+            };
             let m = metrics_clone.clone();
-            async move {
-                Ok::<_, hyper::Error>(service_fn(move |_req: Request<Body>| {
+            tokio::spawn(async move {
+                let service = service_fn(move |_req: Request<Incoming>| {
                     let m = m.clone();
                     async move {
                         let body = m.gather();
-                        Ok::<_, hyper::Error>(Response::new(Body::from(body)))
+                        Ok::<_, Infallible>(Response::new(Full::new(Bytes::from(body)).boxed()))
                     }
-                }))
-            }
-        });
-        let addr = ([0, 0, 0, 0], 8080).into();
-        Server::bind(&addr).serve(make_svc).await.unwrap();
+                });
+                if let Err(e) = Builder::new(TokioExecutor::new())
+                    .serve_connection(TokioIo::new(stream), service)
+                    .await
+                {
+                    eprintln!("error serving {addr}: {e}");
+                }
+            });
+        }
     });
 
     loop {

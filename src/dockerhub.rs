@@ -21,10 +21,14 @@ struct TagsResponse {
 }
 
 pub async fn fetch_latest_tag(client: &Client, repo: &str) -> Result<String, DockerHubError> {
-    // repo should be in form "library/nginx" or "user/repo"
-    let url = format!(
-        "https://hub.docker.com/v2/repositories/{repo}/tags?page_size=1&ordering=last_updated"
-    );
+    // repo can be in form "library/nginx" or a full url to the repository
+    let url = if repo.starts_with("http://") || repo.starts_with("https://") {
+        format!("{repo}/tags?page_size=1&ordering=last_updated")
+    } else {
+        format!(
+            "https://hub.docker.com/v2/repositories/{repo}/tags?page_size=1&ordering=last_updated"
+        )
+    };
     let resp: TagsResponse = client.get(url).send().await?.json().await?;
     resp.results
         .into_iter()

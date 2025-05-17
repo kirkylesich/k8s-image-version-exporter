@@ -1022,9 +1022,12 @@ dependencies = [
 name = "k8s-image-version-exporter"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "futures",
  "http",
+ "http-body-util",
  "hyper",
+ "hyper-util",
  "k8s-openapi",
  "kube",
  "mockito",
