@@ -11,6 +11,7 @@ use tokio::net::TcpListener;
 
 use k8s_image_version_exporter::dockerhub::fetch_latest_tag as fetch_dockerhub_tag;
 use k8s_image_version_exporter::registry::fetch_latest_tag as fetch_registry_tag;
+use k8s_image_version_exporter::ghcr::fetch_latest_tag as fetch_ghcr_tag;
 use k8s_image_version_exporter::kube_watcher::list_images;
 use k8s_image_version_exporter::metrics::Metrics;
 
@@ -60,7 +61,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 format!("library/{}", img.repository)
             };
-            let fetch_res = if repo.split('/').next().map_or(false, |p| p.contains('.')) {
+            let fetch_res = if repo.starts_with("ghcr.io/") || repo.starts_with("https://ghcr.io/") || repo.starts_with("http://ghcr.io/") {
+                fetch_ghcr_tag(&http_client, &repo).await.map_err(|e| e.to_string())
+            } else if repo.split('/').next().map_or(false, |p| p.contains('.')) {
                 fetch_registry_tag(&http_client, &repo).await.map_err(|e| e.to_string())
             } else {
                 fetch_dockerhub_tag(&http_client, &repo).await.map_err(|e| e.to_string())
