@@ -35,12 +35,12 @@ pub async fn fetch_latest_tag(client: &Client, repo: &str) -> Result<String, Reg
     Ok(determine_latest_tag(tags))
 }
 
-fn determine_latest_tag(mut tags: Vec<String>) -> String {
+pub(crate) fn determine_latest_tag(mut tags: Vec<String>) -> String {
     tags.sort_by(|a, b| compare_versions(a, b));
     tags.pop().unwrap()
 }
 
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+pub(crate) fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     let va = parse_version(a);
     let vb = parse_version(b);
     match (&va, &vb) {
@@ -51,7 +51,7 @@ fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
     }
 }
 
-fn parse_version(tag: &str) -> Option<Vec<u64>> {
+pub(crate) fn parse_version(tag: &str) -> Option<Vec<u64>> {
     let t = tag.trim_start_matches('v');
     if t.chars().all(|c| c.is_ascii_digit() || c == '.') {
         let parts: Vec<u64> = t
@@ -64,7 +64,7 @@ fn parse_version(tag: &str) -> Option<Vec<u64>> {
     }
 }
 
-fn cmp_semver(a: &Vec<u64>, b: &Vec<u64>) -> std::cmp::Ordering {
+pub(crate) fn cmp_semver(a: &Vec<u64>, b: &Vec<u64>) -> std::cmp::Ordering {
     let len = std::cmp::max(a.len(), b.len());
     for i in 0..len {
         let av = *a.get(i).unwrap_or(&0);
