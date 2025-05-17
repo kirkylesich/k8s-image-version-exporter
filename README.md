@@ -37,6 +37,17 @@ To run via Docker:
 docker run --rm -p 8080:8080 -v $HOME/.kube:/root/.kube k8s-image-version-exporter
 ```
 
+### Kubernetes Deployment
+
+The repository includes manifests under `deploy/` to run the exporter inside a Kubernetes cluster.
+
+```bash
+kubectl apply -f deploy/k8s.yaml
+```
+
+The deployment uses a dedicated `ServiceAccount` and RBAC permissions so the
+exporter can list pods across the cluster.
+
 ## Testing
 
 Run the Rust test suite with:
