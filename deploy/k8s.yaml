@@ -25,6 +25,20 @@ subjects:
     name: k8s-image-version-exporter
     namespace: default
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-image-version-exporter
+spec:
+  type: ClusterIP
+  selector:
+    app: k8s-image-version-exporter
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
