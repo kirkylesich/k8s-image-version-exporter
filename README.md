@@ -19,7 +19,8 @@ The binary will be available at `target/release/k8s-image-version-exporter`.
 
 ### Using Docker
 ```bash
-docker build -t k8s-image-version-exporter .
+docker build -t kirill02102/k8s-image-version-exporter .
+docker push kirill02102/k8s-image-version-exporter
 ```
 
 ## Running

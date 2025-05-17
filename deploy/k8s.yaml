@@ -42,7 +42,7 @@ spec:
       serviceAccountName: k8s-image-version-exporter
       containers:
       - name: exporter
-        image: ghcr.io/<your-org>/k8s-image-version-exporter:latest
+        image: kirill02102/k8s-image-version-exporter:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
