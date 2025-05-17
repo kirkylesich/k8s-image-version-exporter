@@ -1,10 +1,9 @@
 use k8s_image_version_exporter::kube_watcher::list_images;
 use k8s_image_version_exporter::types::ImageRef;
 use http::{Request, Response, StatusCode};
-use hyper::Body;
-use kube::{Client, Config};
-use url::Url;
-use tower_test::mock::Mock;
+use kube::client::Body;
+use kube::Client;
+use tower_test::mock;
 
 #[tokio::test]
 async fn test_list_images() {
@@ -21,29 +20,21 @@ async fn test_list_images() {
         ]
     });
 
-    let (service, mut handle) = Mock::pair();
+    let (service, mut handle) = mock::pair::<Request<Body>, Response<Body>>();
 
     tokio::spawn(async move {
-        if let Some(req) = handle.next_request().await {
+        if let Some((req, send)) = handle.next_request().await {
             assert_eq!(req.uri().path(), "/api/v1/pods");
             let resp = Response::builder()
                 .status(StatusCode::OK)
                 .header("content-type", "application/json")
-                .body(Body::from(pod_list.to_string()))
+                .body(Body::from(pod_list.to_string().into_bytes()))
                 .unwrap();
-            req.response.send_response(resp);
+            send.send_response(resp);
         }
     });
 
-    let config = Config {
-        cluster_url: Url::parse("http://localhost").unwrap(),
-        default_namespace: "default".into(),
-        root_cert: None,
-        accept_invalid_certs: true,
-        auth_info: Default::default(),
-        ..Default::default()
-    };
-    let client = Client::new(service, config);
+    let client = Client::new(service, "default");
 
     let images = list_images(client).await.expect("images");
     assert!(images.contains(&ImageRef { repository: "nginx".into(), tag: "1.1".into() }));

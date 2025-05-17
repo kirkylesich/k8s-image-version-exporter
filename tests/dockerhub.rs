@@ -5,7 +5,7 @@ use reqwest::Client;
 #[tokio::test]
 async fn test_fetch_latest_tag() {
     let mut server = Server::new_async().await;
-    let body = r#"{\"results\": [{\"name\": \"1.2.3\"}]}"#;
+    let body = r#"{"results": [{"name": "1.2.3"}]}"#;
     let m = server
         .mock("GET", "/v2/repositories/library/nginx/tags")
         .match_query(mockito::Matcher::AllOf(vec![
