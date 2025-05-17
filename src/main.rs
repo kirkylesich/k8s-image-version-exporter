@@ -9,7 +9,8 @@ use kube::Client;
 use reqwest::Client as HttpClient;
 use tokio::net::TcpListener;
 
-use k8s_image_version_exporter::dockerhub::fetch_latest_tag;
+use k8s_image_version_exporter::dockerhub::fetch_latest_tag as fetch_dockerhub_tag;
+use k8s_image_version_exporter::registry::fetch_latest_tag as fetch_registry_tag;
 use k8s_image_version_exporter::kube_watcher::list_images;
 use k8s_image_version_exporter::metrics::Metrics;
 
@@ -59,7 +60,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 format!("library/{}", img.repository)
             };
-            match fetch_latest_tag(&http_client, &repo).await {
+            let fetch_res = if repo.split('/').next().map_or(false, |p| p.contains('.')) {
+                fetch_registry_tag(&http_client, &repo).await.map_err(|e| e.to_string())
+            } else {
+                fetch_dockerhub_tag(&http_client, &repo).await.map_err(|e| e.to_string())
+            };
+            match fetch_res {
                 Ok(latest) => {
                     if latest != img.tag {
                         outdated.push((repo, img.tag.clone(), latest));
